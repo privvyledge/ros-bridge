@@ -1,3 +1,10 @@
+## Fork changes
+
+* changed imu frame_id to `tamagawa/imu_link`
+* change lidar frame_id to `velodyne_top`
+* add ring field to lidar messages
+* add using vehicles attributes such as color
+
 ## Latest changed
 
 *   Fixed scenario runner node shutdown for foxy
