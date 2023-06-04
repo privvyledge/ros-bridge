@@ -4,6 +4,7 @@
 * change lidar frame_id to `velodyne_top`
 * add ring field to lidar messages
 * add using vehicles attributes such as color
+* add steering feedback reading
 
 ## Latest changed
 
