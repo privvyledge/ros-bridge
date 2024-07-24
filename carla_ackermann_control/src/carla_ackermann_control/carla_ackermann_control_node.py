@@ -55,8 +55,13 @@ class CarlaAckermannControl(CompatibleNode):
         # To prevent "float division by zero" within PID controller initialize it with
         # a previous point in time (the error happens because the time doesn't
         # change between initialization and first call, therefore dt is 0)
-        sys.modules['simple_pid.PID']._current_time = (       # pylint: disable=protected-access
-            lambda: self.get_time() - 0.1)
+        try:
+            sys.modules['simple_pid.PID']._current_time = (  # pylint: disable=protected-access
+                lambda: self.get_time() - 0.1)
+        except KeyError as e:
+            # for simple PID versions >= 2.0.0
+            sys.modules['simple_pid.pid']._current_time = (  # pylint: disable=protected-access
+                lambda: self.get_time() - 0.1)
 
         # we might want to use a PID controller to reach the final target speed
         self.speed_controller = PID(Kp=self.get_param("speed_Kp", alternative_value=0.05),
@@ -71,8 +76,13 @@ class CarlaAckermannControl(CompatibleNode):
                                     output_limits=(-1, 1))
 
         # use the correct time for further calculations
-        sys.modules['simple_pid.PID']._current_time = (       # pylint: disable=protected-access
-            lambda: self.get_time())
+        try:
+            sys.modules['simple_pid.PID']._current_time = (  # pylint: disable=protected-access
+                lambda: self.get_time())
+        except KeyError as e:
+            # for simple PID versions >= 2.0.0
+            sys.modules['simple_pid.pid']._current_time = (  # pylint: disable=protected-access
+                lambda: self.get_time())
 
         if ROS_VERSION == 1:
             self.reconfigure_server = Server(
