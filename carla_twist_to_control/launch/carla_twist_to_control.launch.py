@@ -11,6 +11,10 @@ def generate_launch_description():
             name='role_name',
             default_value='ego_vehicle'
         ),
+        launch.actions.DeclareLaunchArgument(
+                name='input_msg_is_stamped',
+                default_value='False'
+        ),
         launch_ros.actions.Node(
             package='carla_twist_to_control',
             executable='carla_twist_to_control',
@@ -19,7 +23,8 @@ def generate_launch_description():
             emulate_tty='True',
             parameters=[
                 {
-                    'role_name': launch.substitutions.LaunchConfiguration('role_name')
+                    'role_name': launch.substitutions.LaunchConfiguration('role_name'),
+                    'input_msg_is_stamped': launch.substitutions.LaunchConfiguration('input_msg_is_stamped')
                 }
             ]
         )

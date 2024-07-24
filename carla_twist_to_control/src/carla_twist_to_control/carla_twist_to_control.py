@@ -18,7 +18,7 @@ from ros_compatibility.node import CompatibleNode
 from ros_compatibility.qos import QoSProfile, DurabilityPolicy
 
 from carla_msgs.msg import CarlaEgoVehicleControl, CarlaEgoVehicleInfo  # pylint: disable=import-error
-from geometry_msgs.msg import Twist  # pylint: disable=import-error
+from geometry_msgs.msg import Twist, TwistStamped  # pylint: disable=import-error
 
 
 class TwistToVehicleControl(CompatibleNode):  # pylint: disable=too-few-public-methods
@@ -38,7 +38,11 @@ class TwistToVehicleControl(CompatibleNode):  # pylint: disable=too-few-public-m
 
         self.role_name = self.get_param("role_name", "ego_vehicle")
         self.max_steering_angle = None
+        self.input_msg_is_stamped = self.get_param("input_msg_is_stamped", False)
 
+        message_type = Twist
+        if self.input_msg_is_stamped:
+            message_type = TwistStamped
         self.new_subscription(
             CarlaEgoVehicleInfo,
             "/carla/{}/vehicle_info".format(self.role_name),
@@ -46,7 +50,7 @@ class TwistToVehicleControl(CompatibleNode):  # pylint: disable=too-few-public-m
             qos_profile=QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL))
 
         self.new_subscription(
-            Twist,
+            message_type,
             "/carla/{}/twist".format(self.role_name),
             self.twist_received,
             qos_profile=10)
@@ -80,7 +84,11 @@ class TwistToVehicleControl(CompatibleNode):  # pylint: disable=too-few-public-m
             return
 
         control = CarlaEgoVehicleControl()
-        if twist == Twist():
+        empty_msg = Twist()
+        if self.input_msg_is_stamped:
+            empty_msg = TwistStamped()
+            twist = twist.twist
+        if twist == empty_msg:
             # stop
             control.throttle = 0.
             control.brake = 1.
