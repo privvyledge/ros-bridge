@@ -15,6 +15,10 @@ def generate_launch_description():
             name='control_loop_rate',
             default_value='0.05'
         ),
+        launch.actions.DeclareLaunchArgument(
+                name='input_msg_is_stamped',
+                default_value='False'
+        ),
         launch_ros.actions.Node(
             package='carla_ackermann_control',
             executable='carla_ackermann_control_node',
@@ -24,7 +28,8 @@ def generate_launch_description():
                 Path(get_package_share_directory('carla_ackermann_control'), "settings.yaml"),
                 {
                     'role_name': launch.substitutions.LaunchConfiguration('role_name'),
-                    'control_loop_rate': launch.substitutions.LaunchConfiguration('control_loop_rate')
+                    'control_loop_rate': launch.substitutions.LaunchConfiguration('control_loop_rate'),
+                    'input_msg_is_stamped': launch.substitutions.LaunchConfiguration('input_msg_is_stamped')
                 }
             ]
         )

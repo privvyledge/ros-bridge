@@ -20,7 +20,7 @@ from ros_compatibility.node import CompatibleNode
 
 from carla_ackermann_control import carla_control_physics as phys
 
-from ackermann_msgs.msg import AckermannDrive  # pylint: disable=import-error,wrong-import-order
+from ackermann_msgs.msg import AckermannDrive, AckermannDriveStamped  # pylint: disable=import-error,wrong-import-order
 from std_msgs.msg import Header # pylint: disable=wrong-import-order
 from carla_msgs.msg import CarlaEgoVehicleStatus  # pylint: disable=no-name-in-module,import-error
 from carla_msgs.msg import CarlaEgoVehicleControl  # pylint: disable=no-name-in-module,import-error
@@ -93,6 +93,7 @@ class CarlaAckermannControl(CompatibleNode):
         if ROS_VERSION == 2:
             self. add_on_set_parameters_callback(self.reconfigure_pid_parameters)
 
+        self.input_msg_is_stamped = self.get_param("input_msg_is_stamped", False)
         self.control_loop_rate = self.get_param("control_loop_rate", 0.05)
         self.last_ackermann_msg_received_sec =  self.get_time()
         self.vehicle_status = CarlaEgoVehicleStatus()
@@ -135,8 +136,11 @@ class CarlaAckermannControl(CompatibleNode):
         self.info.output.hand_brake = True
 
         # ackermann drive commands
+        message_type = AckermannDrive
+        if self.input_msg_is_stamped:
+            message_type = AckermannDriveStamped
         self.control_subscriber = self.new_subscription(
-            AckermannDrive,
+            message_type,
             "/carla/" + self.role_name + "/ackermann_cmd",
             self.ackermann_command_updated,
             qos_profile=10
@@ -302,12 +306,20 @@ class CarlaAckermannControl(CompatibleNode):
         :type ros_ackermann_drive: ackermann_msgs.AckermannDrive
         :return:
         """
-        self.last_ackermann_msg_received_sec = self.get_time()
-        # set target values
-        self.set_target_steering_angle(ros_ackermann_drive.steering_angle)
-        self.set_target_speed(ros_ackermann_drive.speed)
-        self.set_target_accel(ros_ackermann_drive.acceleration)
-        self.set_target_jerk(ros_ackermann_drive.jerk)
+        if not self.input_msg_is_stamped:
+            self.last_ackermann_msg_received_sec = self.get_time()
+            # set target values
+            self.set_target_steering_angle(ros_ackermann_drive.steering_angle)
+            self.set_target_speed(ros_ackermann_drive.speed)
+            self.set_target_accel(ros_ackermann_drive.acceleration)
+            self.set_target_jerk(ros_ackermann_drive.jerk)
+        else:
+            self.last_ackermann_msg_received_sec = self.get_time()  # ros_ackermann_drive.header.stamp
+            # set target values
+            self.set_target_steering_angle(ros_ackermann_drive.drive.steering_angle)
+            self.set_target_speed(ros_ackermann_drive.drive.speed)
+            self.set_target_accel(ros_ackermann_drive.drive.acceleration)
+            self.set_target_jerk(ros_ackermann_drive.drive.jerk)
 
     def set_target_steering_angle(self, target_steering_angle):
         """
