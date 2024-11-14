@@ -21,3 +21,8 @@
 ## Getting started and documentation
 
 Installation instructions and further documentation of the ROS bridge and additional packages are found [__here__](https://carla.readthedocs.io/projects/ros-bridge/en/latest/).
+
+
+## Other ROS Bridge Repositories, e.g with Autoware support
+* TUMFTM: https://github.com/TUMFTM/ros-bridge | https://github.com/TUMFTM/Carla-Autoware-Bridge
+* Autoware: https://github.com/autowarefoundation/autoware.universe/tree/main/simulator/autoware_carla_interface
