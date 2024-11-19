@@ -2,7 +2,7 @@ pep8
 autopep8
 cmake_format==0.6.11
 pylint
-numpy==1.23.5
+numpy==1.26.4  # 1.23.5
 transforms3d
 pygame
 pexpect
