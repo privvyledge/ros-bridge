@@ -140,12 +140,13 @@ class CarlaSpawnObjects(CompatibleNode):
                         spawn_object_request.attributes.append(
                                 KeyValue(key=str(attribute), value=str(value)))
                 except KeyError as e:
-                    self.logwarn("{}: No vehicle attributes in file. ".format(e))
+                    self.logwarn("No {} attribute in file. ".format(e))
 
                 spawn_point = None
 
                 # check if there's a spawn_point corresponding to this vehicle
-                spawn_point_param = self.get_param("spawn_point_" + vehicle["id"], None)
+                spawn_point_param = self.get_param("spawn_point_ego_vehicle", None) # use as the default
+                spawn_point_param = self.get_param("spawn_point_" + vehicle["id"], spawn_point_param)
                 spawn_param_used = False
                 if (spawn_point_param is not None):
                     # try to use spawn_point from parameters
