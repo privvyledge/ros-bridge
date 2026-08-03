@@ -21,6 +21,17 @@ from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker
 
 
+# CARLA reports an all-zero bounding box for two-wheelers, so they reach ROS with
+# no size at all: invisible in RViz and impossible for a planner to avoid. There
+# is nothing to read the real extent from, so substitute a conservative size per
+# classification. Full extents in metres (length, width, height); heights include
+# the rider.
+FALLBACK_EXTENT = {
+    Object.CLASSIFICATION_MOTORCYCLE: (2.20, 0.90, 1.60),
+    Object.CLASSIFICATION_BIKE: (1.80, 0.70, 1.60),
+}
+
+
 class TrafficParticipant(Actor):
 
     """
@@ -63,6 +74,26 @@ class TrafficParticipant(Actor):
         self.classification_age += 1
         super(TrafficParticipant, self).update(frame, timestamp)
 
+    def get_shape_extent(self):
+        """
+        Function to provide the half-extents to publish for this participant.
+
+        Returns CARLA's own bounding box extent, except when that box is
+        degenerate (all zero, as CARLA reports for two-wheelers), in which case
+        a conservative FALLBACK_EXTENT for the classification is used. Shared by
+        the object and marker paths so the two cannot describe different boxes.
+
+        :return: (x, y, z) half-extents in metres
+        :rtype: tuple
+        """
+        extent = self.carla_actor.bounding_box.extent
+        if extent.x > 0.0 or extent.y > 0.0 or extent.z > 0.0:
+            return extent.x, extent.y, extent.z
+        fallback = FALLBACK_EXTENT.get(self.get_classification())
+        if fallback is None:
+            return extent.x, extent.y, extent.z
+        return fallback[0] / 2.0, fallback[1] / 2.0, fallback[2] / 2.0
+
     def get_bounding_box_ros_pose(self):
         """
         Function to provide the ROS pose of this participant's bounding box centre.
@@ -90,7 +121,13 @@ class TrafficParticipant(Actor):
             # reports a 1.19 m offset for one. Applying it would displace the
             # object by more than its own length, so fall back to the actor
             # origin, which is what this method used to return for everything.
-            return self.get_current_ros_pose()
+            transform = self.carla_actor.get_transform()
+            half_height = self.get_shape_extent()[2]
+            if half_height > 0.0:
+                # Lift the substituted box so it rests on the road rather than
+                # being centred on the actor origin, which sits at ground level.
+                transform.location += transform.get_up_vector() * half_height
+            return trans.carla_transform_to_ros_pose(transform)
 
         transform = self.carla_actor.get_transform()
         centre = carla.Location(
@@ -121,10 +158,9 @@ class TrafficParticipant(Actor):
         obj.accel = self.get_current_ros_accel()
         # Shape
         obj.shape.type = SolidPrimitive.BOX
+        extent = self.get_shape_extent()
         obj.shape.dimensions.extend([
-            self.carla_actor.bounding_box.extent.x * 2.0,
-            self.carla_actor.bounding_box.extent.y * 2.0,
-            self.carla_actor.bounding_box.extent.z * 2.0])
+            extent[0] * 2.0, extent[1] * 2.0, extent[2] * 2.0])
 
         # Classification if available in attributes
         if self.get_classification() != Object.CLASSIFICATION_UNKNOWN:
@@ -177,7 +213,8 @@ class TrafficParticipant(Actor):
         marker.type = Marker.CUBE
 
         marker.pose = self.get_marker_pose()
-        marker.scale.x = self.carla_actor.bounding_box.extent.x * 2.0
-        marker.scale.y = self.carla_actor.bounding_box.extent.y * 2.0
-        marker.scale.z = self.carla_actor.bounding_box.extent.z * 2.0
+        extent = self.get_shape_extent()
+        marker.scale.x = extent[0] * 2.0
+        marker.scale.y = extent[1] * 2.0
+        marker.scale.z = extent[2] * 2.0
         return marker

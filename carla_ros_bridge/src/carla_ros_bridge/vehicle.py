@@ -93,11 +93,12 @@ class Vehicle(TrafficParticipant):
         :return: the pose of the vehicle
         :rtype: geometry_msgs.msg.Pose
         """
-        # Moving pivot point from the bottom (CARLA) to the center (ROS) of the bounding box.
-        extent = self.carla_actor.bounding_box.extent
-        marker_transform = self.carla_actor.get_transform()
-        marker_transform.location += marker_transform.get_up_vector() * extent.z
-        return trans.carla_transform_to_ros_pose(marker_transform)
+        # Moving pivot point from the bottom (CARLA) to the center (ROS) of the
+        # bounding box. Delegated so vehicles, markers and objects share ONE
+        # definition of that pose -- this override predated get_object_info's
+        # equivalent fix and the two silently disagreed, and it cannot express
+        # the fallback box used for CARLA's zero-size two-wheeler boxes.
+        return self.get_bounding_box_ros_pose()
 
     def get_classification(self):
         """
